@@ -34,10 +34,10 @@ Notes:
 
 ## Family table
 
-| id  | partner1 | partner2 | date     | place  | notes         |
-|-----|----------|----------|----------|--------|---------------|
-| 0   | 1        | 0        | +1940-04 | Brolin | family of Kim |
-| 1   | 2        | 0        | +1920    |        |               |
+| id  | partner1 | partner2 | date     | place  | notes                                               |
+|-----|----------|----------|----------|--------|-----------------------------------------------------|
+| 0   | 1        | 0        | +1940-04 | Brolin | family of Kim                                       |
+| 1   | 2        | 0        | +1920    |        | since partner2 is 0, a new person will be generated |
 
 - `ID` can be any string, `0` is not reserved
 - `partner1` and `partner2` are IDs of persons specified in the person table
