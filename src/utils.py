@@ -1,13 +1,15 @@
 import datetime
-from typing import Optional
 
 from gedcomx import models, enums
 
 
-def get_age(person: models.Person, date: models.Date = None) -> Optional[int]:
-    """Calculates the age of a person at a date
+def get_age(person: models.Person, date: models.Date = None) -> int:
+    """
+    Calculates the age of a person at a date
+    Throws a value error if the person has no formal birthday or the resulting age is negative
     :param person: person whose age shall be calculated
     :param date: current date if not specified
+    :return: age of the person
     """
 
     birth = [f for f in person.facts if f.type == enums.FactType.birth]
@@ -26,8 +28,10 @@ def get_age(person: models.Person, date: models.Date = None) -> Optional[int]:
 
 
 def date_to_python_date(date: models.Date) -> datetime.date:
-    """Converts a date to a python date object
+    """
+    Converts a date to a python date object
     :param date GedcomX date with formal specified
+    :return: python date object
     """
     formal_date = date.formal
     if len(formal_date) <= 5:
@@ -50,7 +54,12 @@ def find_person_by_id(root: models.GedcomXObject, person_id):
 
 
 def add_generations(root: models.GedcomXObject):
-    min_generation = -min(add_generations_recursive(root, root.persons[0], 0))
+    """
+    Adds generation facts to a GedcomX root
+    :param root: the document root
+    """
+
+    min_generation = -min(add_generations_recursive(root, root.persons[0]))
     # add generation to partners of siblings and others who are not reached
     not_reached = (p for p in root.persons
                    # if no generation defined
@@ -93,7 +102,15 @@ def add_generations(root: models.GedcomXObject):
             pass
 
 
-def add_generations_recursive(root: models.GedcomXObject, person: models.Person, generation: int) -> [int]:
+def add_generations_recursive(root: models.GedcomXObject, person: models.Person, generation: int = 0) -> [int]:
+    """
+    Adds generation facts to ancestors and descendants of a person recursively
+    :param root: the document root
+    :param person: the start person
+    :param generation: the generation of the start person, defaults to 0
+    :return: list of generation that where added to the relatives
+    """
+
     # first, check if a generation is already defined
     try:
         next(f for f in person.facts if f.type == enums.FactType.generationNumber)

@@ -8,7 +8,14 @@ from utils import get_age, find_person_by_id
 children: dict[str, [str]] = {}
 
 
-def load_data(person_file: str, family_file: str):
+def load_data(person_file: str, family_file: str) -> models.GedcomXObject:
+    """
+    Loads the csv data from the specified file paths
+    :param person_file: path to a csv file containing info about persons
+    :param family_file: path to a csv file containing info about relationships
+    :return: the root object of the GedcomX file
+    """
+
     root = models.GedcomXObject(persons=[], relationships=[])
     with open(person_file) as file:
         reader = csv.DictReader(file)
@@ -32,6 +39,12 @@ def load_data(person_file: str, family_file: str):
 
 
 def parse_person(row) -> models.Person:
+    """
+    Utility function that parses a single row of person data
+    :param row: the row returned by the dict reader
+    :return: a GedcomX person
+    """
+
     person = models.Person(
         id=row['id'],
         gender=models.Gender(type=f'http://gedcomx.org/{row["gender"]}'),
@@ -91,7 +104,11 @@ def parse_person(row) -> models.Person:
 
 
 def get_names(row) -> list[models.Name]:
-    """Parses a row specifying a person to a GedcomX name"""
+    """
+    Parses a row specifying a person to a GedcomX name
+    :param row: A single row defining a person, as returned by the dict reader
+    :return: list of GedcomX names
+    """
 
     # first, build a default name containing everything
     formal_name_forms = models.NameForm(fullText=row['full_name'], parts=[])
@@ -126,7 +143,12 @@ def get_names(row) -> list[models.Name]:
 
 
 def parse_family(root: models.GedcomXObject, row) -> models.Relationship:
-    """Parses a row representing a family and returns a GedcomX relationship"""
+    """
+    Parses single a row representing a family and returns a GedcomX relationship
+    :param root: the root of the GedcomX file
+    :param row: a single row of family data, as returned by the dict reader
+    :return: a GedcomX relationship
+    """
     relationship = models.Relationship(
         id='r-' + row['id'],
         person1=models.ResourceReference(resource='#' + row['partner1']),
