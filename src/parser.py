@@ -52,6 +52,9 @@ def parse_person(row) -> models.Person:
         facts=[models.Fact(type=enums.FactType.maritalStatus, value='single')],
         private=False
     )
+    if row['notes']:
+        person.notes = [models.Note(text=note) for note in row['notes'].split(';')]
+
     if row['birth_date'] or row['birth_place']:
         birth = models.Fact(
             type=enums.FactType.birth,
@@ -159,6 +162,8 @@ def parse_family(root: models.GedcomXObject, row) -> models.Relationship:
             value=len(children[row['id']]) if row['id'] in children else 0)
         ]
     )
+    if row['notes']:
+        relationship.notes = [models.Note(text=note) for note in row['notes'].split(';')]
 
     # add date and place if present
     if row['date'] or row['place']:
