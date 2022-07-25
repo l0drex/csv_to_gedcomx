@@ -18,9 +18,9 @@ def main(args) -> Optional[dict]:
     with open(args.persons) as file:
         reader = csv.DictReader(file)
         for row in reader:
-            if row['ID'] == '0':
+            if row['id'] == '0':
                 continue
-            if row['ID'] == '':
+            if row['id'] == '':
                 break
 
             root.persons.append(parse_person(row))
@@ -28,7 +28,7 @@ def main(args) -> Optional[dict]:
     with open(args.families) as file:
         reader = csv.DictReader(file)
         for row in reader:
-            if row['ID'] == '':
+            if row['id'] == '':
                 break
 
             root.relationships.append(parse_family(row))
@@ -85,17 +85,17 @@ def main(args) -> Optional[dict]:
 
 def parse_person(row) -> models.Person:
     person = models.Person(
-        id=row['ID'],
+        id=row['id'],
         gender=models.Gender(type=f'http://gedcomx.org/{row["gender"]}'),
         names=get_names(row),
         facts=[models.Fact(type=enums.FactType.maritalStatus, value='single')],
         private=False
     )
-    if row['birthday'] or row['place_of_birth']:
+    if row['birth_date'] or row['birth_place']:
         birth = models.Fact(
             type=enums.FactType.birth,
-            date=models.Date(formal=row['birthday']) if row['birthday'] else None,
-            place=models.PlaceReference(original=row['place_of_birth']) if row['place_of_birth'] else None
+            date=models.Date(formal=row['birth_date']) if row['birth_date'] else None,
+            place=models.PlaceReference(original=row['birth_place']) if row['birth_place'] else None
         )
         person.facts.append(birth)
 
@@ -104,21 +104,21 @@ def parse_person(row) -> models.Person:
     except ValueError:
         too_old = False
 
-    if row['day_of_death'] or row['place_of_death'] or row['cause_of_death'] or too_old:
+    if row['death_date'] or row['death_place'] or row['cause_of_death'] or too_old:
         death = models.Fact(
             type=enums.FactType.death,
-            date=models.Date(formal=row['day_of_death']) if row['day_of_death'] else None,
-            place=models.PlaceReference(original=row['place_of_death']) if row['place_of_death'] else None,
+            date=models.Date(formal=row['death_date']) if row['death_date'] else None,
+            place=models.PlaceReference(original=row['death_place']) if row['death_place'] else None,
         )
         death.qualifiers = [f for f in [
             models.Qualifier(
                 name='http://gedcomx.org/Age',
-                value=get_age(person, models.Date(formal=row['day_of_death']))
-            ) if row['day_of_death'] else None,
+                value=get_age(person, models.Date(formal=row['death_date']))
+            ) if row['death_date'] else None,
             models.Qualifier(
                 name='http://gedcomx.org/Cause',
-                value=row['cause_of_death']
-            ) if row['cause_of_death'] else None] if f is not None]
+                value=row['death_cause']
+            ) if row['death_cause'] else None] if f is not None]
         if len(death.qualifiers) == 0:
             death.qualifiers = None
         person.facts.append(death)
@@ -135,9 +135,9 @@ def parse_person(row) -> models.Person:
 
     # collect children
     if row['child_of'] in children:
-        children[row['child_of']].append(row['ID'])
+        children[row['child_of']].append(row['id'])
     else:
-        children[row['child_of']] = [row['ID']]
+        children[row['child_of']] = [row['id']]
 
     return person
 
@@ -180,23 +180,23 @@ def get_names(row) -> list[models.Name]:
 def parse_family(row) -> models.Relationship:
     """Parses a row representing a family and returns a GedcomX relationship"""
     relationship = models.Relationship(
-        id='r-' + row['ID'],
+        id='r-' + row['id'],
         person1=models.ResourceReference(resource='#' + row['partner1']),
         person2=models.ResourceReference(resource='#' + row['partner2']),
         type=enums.RelationshipType.couple.value,
         facts=[models.Fact(
             type=enums.CoupleRelationshipFactType.numberOfChildren,
-            value=len(children[row['ID']]) if row['ID'] in children else 0)
+            value=len(children[row['id']]) if row['id'] in children else 0)
         ]
     )
 
     # add date and place if present
-    if row['begin'] or row['Ort']:
+    if row['date'] or row['place']:
         marriage = models.Fact(type=enums.CoupleRelationshipFactType.marriage)
-        if row['begin']:
-            marriage.date = models.Date(formal=row['begin'])
-        if row['Ort']:
-            marriage.place = models.PlaceReference(original=row['Ort'])
+        if row['date']:
+            marriage.date = models.Date(formal=row['date'])
+        if row['place']:
+            marriage.place = models.PlaceReference(original=row['place'])
         relationship.facts.append(marriage)
     # add new facts to the persons
     for person_id in [relationship.person1, relationship.person2]:
@@ -210,9 +210,9 @@ def parse_family(row) -> models.Relationship:
 
         marital_status = [f for f in person.facts if f.type == enums.FactType.maritalStatus][0]
         marital_status.value = 'married'
-        if row['begin']:
+        if row['date']:
             # add date and age qualifier
-            marital_status.date = models.Date(formal=row['begin'])
+            marital_status.date = models.Date(formal=row['date'])
             try:
                 age = get_age(person, marital_status.date)
                 marital_status.qualifiers = [models.Qualifier(name='http://gedcomx.org/Age', value=age)]
@@ -220,8 +220,8 @@ def parse_family(row) -> models.Relationship:
                 print(f"Error while parsing age at marriage of {person.id}:", e)
 
         # add parent-child
-        if row['ID'] in children:
-            for child_id in children[row['ID']]:
+        if row['id'] in children:
+            for child_id in children[row['id']]:
                 root.relationships.append(models.Relationship(
                     id=f'r-{person_id}-{child_id}',
                     type=enums.RelationshipType.parentChild,
@@ -297,7 +297,7 @@ def find_person_by_id(person_id):
     try:
         return next(p for p in root.persons if p.id == person_id)
     except StopIteration:
-        raise ReferenceError(f'No person with ID {person_id} could be found')
+        raise ReferenceError(f'No person with id {person_id} could be found')
 
 
 parser = argparse.ArgumentParser(
