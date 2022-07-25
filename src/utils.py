@@ -159,7 +159,7 @@ def get_partners(root: models.GedcomXObject, person: models.Person) -> [models.P
     Returns all partners of the person
     :param root: document root
     :param person: gedcomx person
-    :return: list of parents
+    :return: list of partners
     """
     yield from (
         find_person_by_id(root, r.person1 if person.id == r.person2.resource[1:] else r.person2)
@@ -170,21 +170,43 @@ def get_partners(root: models.GedcomXObject, person: models.Person) -> [models.P
     )
 
 
+def get_siblings(root: models.GedcomXObject, person: models.Person) -> [models.Person]:
+    """
+    Returns all siblings of the person
+    :param root: document root
+    :param person: gedcomx person
+    :return: list of siblings
+    """
+    yield from (
+        s for s in root.persons if
+        s != person and
+        # find a shared parent
+        len([p for p in get_parents(root, person) if p in get_parents(root, s)]) > 0
+    )
+
+
 def filter_relatives(root: models.GedcomXObject, person_id: str) -> models.GedcomXObject:
     person = find_person_by_id(root, person_id)
     relatives: [models.Person] = [person]
-    stack = [person]
+
+    print('Collecting siblings')
+    for s in get_siblings(root, person):
+        relatives.append(s)
+
+    stack = relatives.copy()
     print('Collection descendants')
     while len(stack) > 0:
         for c in get_children(root, stack.pop()):
             relatives.append(c)
             stack.append(c)
+
     print('Collecting ancestors')
     stack = [person]
     while len(stack) > 0:
         for p in get_parents(root, stack.pop()):
             relatives.append(p)
             stack.append(p)
+
     print('Collecting partners')
     for relative in relatives.copy():
         for p in get_partners(root, relative):
