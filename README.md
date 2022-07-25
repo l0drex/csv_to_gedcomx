@@ -8,9 +8,15 @@ _Example:_
 main.py persons.csv families.csv
 # put result in new file named output.json
 main.py persons.csv families.csv --output output.json
+# only include relatives of the person with id 42
+moin.py perosn.csv families.csv --id 42
 ```
 
-Replace the file names with your own. 
+Replace the file names with your own.
+When you specify an id, only the following people will be included in the output:
+- descendants and ancestors
+- partners and siblings
+- descendants of siblings
 
 # Structure of the CSV files
 
