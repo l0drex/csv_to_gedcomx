@@ -119,16 +119,85 @@ def add_generations_recursive(root: models.GedcomXObject, person: models.Person,
         pass
 
     person.facts.append(models.Fact(type=enums.FactType.generationNumber, value=str(generation)))
-    parent_ids = (r.person1 for r in root.relationships
-                  if r.type == enums.RelationshipType.parentChild and r.person2.resource[1:] == person.id)
-    for parent_id in parent_ids:
-        parent = find_person_by_id(root, parent_id)
+    for parent in get_parents(root, person):
         yield from add_generations_recursive(root, parent, generation - 1)
 
-    child_ids = (r.person2 for r in root.relationships
-                 if r.type == enums.RelationshipType.parentChild and r.person1.resource[1:] == person.id)
-    for child_id in child_ids:
-        child = find_person_by_id(root, child_id)
+    for child in get_children(root, person):
         yield from add_generations_recursive(root, child, generation + 1)
 
     yield generation
+
+
+def get_children(root: models.GedcomXObject, person: models.Person) -> [models.Person]:
+    """
+    Returns all children of the person
+    :param root: document root
+    :param person: gedcomx person
+    :return: list of children
+    """
+    yield from (
+        find_person_by_id(root, r.person2) for r in root.relationships
+        if r.type == enums.RelationshipType.parentChild and r.person1.resource[1:] == person.id
+    )
+
+
+def get_parents(root: models.GedcomXObject, person: models.Person) -> [models.Person]:
+    """
+    Returns all parents of the person
+    :param root: document root
+    :param person: gedcomx person
+    :return: list of parents
+    """
+    yield from (
+        find_person_by_id(root, r.person1) for r in root.relationships
+        if r.type == enums.RelationshipType.parentChild and r.person2.resource[1:] == person.id
+    )
+
+
+def get_partners(root: models.GedcomXObject, person: models.Person) -> [models.Person]:
+    """
+    Returns all partners of the person
+    :param root: document root
+    :param person: gedcomx person
+    :return: list of parents
+    """
+    yield from (
+        find_person_by_id(root, r.person1 if person.id == r.person2.resource[1:] else r.person2)
+        for r in root.relationships
+        if r.type == enums.RelationshipType.couple
+        and (r.person1.resource[1:] == person.id
+        or r.person2.resource[1:] == person.id)
+    )
+
+
+def filter_relatives(root: models.GedcomXObject, person_id: str) -> models.GedcomXObject:
+    person = find_person_by_id(root, person_id)
+    relatives: [models.Person] = [person]
+    stack = [person]
+    print('Collection descendants')
+    while len(stack) > 0:
+        for c in get_children(root, stack.pop()):
+            relatives.append(c)
+            stack.append(c)
+    print('Collecting ancestors')
+    stack = [person]
+    while len(stack) > 0:
+        for p in get_parents(root, stack.pop()):
+            relatives.append(p)
+            stack.append(p)
+    print('Collecting partners')
+    for relative in relatives.copy():
+        for p in get_partners(root, relative):
+            relatives.append(p)
+
+    root.persons = [p for p in root.persons if p in relatives]
+    root.relationships = [
+        r for r in root.relationships
+        if r.person1.resource[1:] in [p.id for p in relatives]
+        and r.person2.resource[1:] in [p.id for p in relatives]
+    ]
+
+    assert len(root.persons) > 0
+    assert len(root.relationships) > 0
+
+    return root

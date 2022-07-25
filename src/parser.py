@@ -152,10 +152,24 @@ def parse_family(root: models.GedcomXObject, row) -> models.Relationship:
     :param row: a single row of family data, as returned by the dict reader
     :return: a GedcomX relationship
     """
+
+    partner1 = row['partner1']
+    if partner1 == '0':
+        partner1 = str(len(root.persons))
+        person = models.Person(id=partner1,
+                               facts=[models.Fact(type=enums.FactType.maritalStatus, value='single')])
+        root.persons.append(person)
+    partner2 = row['partner2']
+    if partner2 == '0':
+        partner2 = str(len(root.persons))
+        person = models.Person(id=partner2,
+                               facts=[models.Fact(type=enums.FactType.maritalStatus, value='single')])
+        root.persons.append(person)
+
     relationship = models.Relationship(
         id='r-' + row['id'],
-        person1=models.ResourceReference(resource='#' + row['partner1']),
-        person2=models.ResourceReference(resource='#' + row['partner2']),
+        person1=models.ResourceReference(resource='#' + partner1),
+        person2=models.ResourceReference(resource='#' + partner2),
         type=enums.RelationshipType.couple.value,
         facts=[models.Fact(
             type=enums.CoupleRelationshipFactType.numberOfChildren,
@@ -175,13 +189,7 @@ def parse_family(root: models.GedcomXObject, row) -> models.Relationship:
         relationship.facts.append(marriage)
     # add new facts to the persons
     for person_id in [relationship.person1, relationship.person2]:
-        try:
-            person = find_person_by_id(root, person_id)
-        except ReferenceError:
-            person_id = models.ResourceReference(resource=f'#{len(root.persons)}')
-            person = models.Person(id=len(root.persons),
-                                   facts=[models.Fact(type=enums.FactType.maritalStatus, value='single')])
-            root.persons.append(person)
+        person = find_person_by_id(root, person_id)
 
         marital_status = [f for f in person.facts if f.type == enums.FactType.maritalStatus][0]
         marital_status.value = 'married'
