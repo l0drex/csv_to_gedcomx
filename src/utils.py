@@ -165,8 +165,7 @@ def get_partners(root: models.GedcomXObject, person: models.Person) -> [models.P
         find_person_by_id(root, r.person1 if person.id == r.person2.resource[1:] else r.person2)
         for r in root.relationships
         if r.type == enums.RelationshipType.couple
-        and (r.person1.resource[1:] == person.id
-        or r.person2.resource[1:] == person.id)
+        and (r.person1.resource[1:] == person.id or r.person2.resource[1:] == person.id)
     )
 
 
@@ -216,7 +215,7 @@ def filter_relatives(root: models.GedcomXObject, person_id: str) -> models.Gedco
     root.relationships = [
         r for r in root.relationships
         if r.person1.resource[1:] in [p.id for p in relatives]
-        and r.person2.resource[1:] in [p.id for p in relatives]
+           and r.person2.resource[1:] in [p.id for p in relatives]
     ]
 
     assert len(root.persons) > 0
