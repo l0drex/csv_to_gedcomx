@@ -4,10 +4,10 @@ This is a simple python script that can convert two CSV tables to a GedcomX json
 
 _Example:_
 ```shell
-# print result to stdout
-main.py persons.csv families.csv
 # put result in new file named output.json
 main.py persons.csv families.csv --output output.json
+# print result to stdout
+main.py persons.csv families.csv
 # only include relatives of the person with id 42
 main.py person.csv families.csv --id 42
 ```
@@ -17,6 +17,8 @@ When you specify an id, only the following people will be included in the output
 - descendants and ancestors
 - partners and siblings
 - descendants of siblings
+
+> ⚠️ I don't recommend piping the output directly to a file, since any errors and warnings will be included and the file will be corrupted.
 
 # Structure of the CSV files
 
