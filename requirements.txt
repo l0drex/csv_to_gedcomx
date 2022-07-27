@@ -1,1 +1,2 @@
 pygedcomx==0.0.1
+fuzzywuzzy~=0.18.0
