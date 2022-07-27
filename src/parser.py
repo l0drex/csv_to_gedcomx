@@ -1,11 +1,14 @@
 import csv
 
+from fuzzywuzzy import fuzz
 from gedcomx import models, enums
 
 from utils import get_age, find_person_by_id
 
 # maps relationship ids to person ids
 children: dict[str, [str]] = {}
+# used to identify possible spelling mistakes
+last_names: set[str] = set()
 
 
 def load_data(person_file: str, family_file: str) -> models.GedcomXObject:
@@ -133,9 +136,11 @@ def get_names(row) -> list[models.Name]:
 
     # then give some additional names
     if row['married']:
+        check_last_name(row['married'], row['id'])
         yield models.Name(type=enums.NameType.marriedName, nameForms=[models.NameForm(fullText=row['married'])])
 
     if row['born']:
+        check_last_name(row['born'], row['id'])
         yield models.Name(type=enums.NameType.birthName, nameForms=[models.NameForm(fullText=row['born'])])
 
     if row['nickname']:
@@ -143,6 +148,16 @@ def get_names(row) -> list[models.Name]:
 
     if row['aka']:
         yield models.Name(type=enums.NameType.alsoKnownAs, nameForms=[models.NameForm(fullText=row['aka'])])
+
+
+def check_last_name(name: str, person_id: str):
+    if name not in last_names:
+        # search for spelling mistakes
+        for present_name in last_names:
+            hamming_distance = fuzz.ratio(list(name), list(present_name))
+            if hamming_distance > 92:
+                print(f"Possible spelling mistake found: {name} of {person_id} should be {present_name}")
+        last_names.add(name)
 
 
 def parse_family(root: models.GedcomXObject, row) -> models.Relationship:
