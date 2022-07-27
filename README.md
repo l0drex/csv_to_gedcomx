@@ -9,7 +9,7 @@ main.py persons.csv families.csv
 # put result in new file named output.json
 main.py persons.csv families.csv --output output.json
 # only include relatives of the person with id 42
-moin.py perosn.csv families.csv --id 42
+main.py person.csv families.csv --id 42
 ```
 
 Replace the file names with your own.
