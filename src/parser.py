@@ -155,9 +155,11 @@ def parse_family(root: models.GedcomXObject, row) -> models.Relationship:
 
     partner1 = row['partner1']
     if partner1 == '0':
+        # add new person if undefined
         partner1 = str(len(root.persons))
         person = models.Person(id=partner1,
-                               facts=[models.Fact(type=enums.FactType.maritalStatus, value='single')])
+                               facts=[models.Fact(type=enums.FactType.maritalStatus, value='single')],
+                               gender=models.Gender(type=enums.GenderType.unknown))
         root.persons.append(person)
     partner2 = row['partner2']
     if partner2 == '0':
