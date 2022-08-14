@@ -217,7 +217,7 @@ def parse_family(root: models.GedcomXObject, row) -> models.Relationship:
                 age = get_age(person, marital_status.date)
                 marital_status.qualifiers = [models.Qualifier(name='http://gedcomx.org/Age', value=age)]
             except ValueError as e:
-                print(f"Error while parsing age at marriage of {person.id}:", e)
+                print(f"Could not determine age at marriage of {person.id}:", e)
 
         # add parent-child
         if row['id'] in children:

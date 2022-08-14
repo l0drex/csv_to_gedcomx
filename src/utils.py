@@ -65,13 +65,17 @@ def add_generations(root: models.GedcomXObject):
                    # if no generation defined
                    if len([f for f in p.facts if f.type == enums.FactType.generationNumber]) == 0)
     for person in not_reached:
-        partner = next(
-            # partner is the other person
-            find_person_by_id(root, r.person1 if r.person2.resource[1:] == person.id else r.person2)
-            # of a couple relationship
-            for r in root.relationships if r.type == enums.RelationshipType.couple
-            # that contains the person
-            and person.id in [r.person1.resource[1:], r.person2.resource[1:]])
+        try:
+            partner = next(
+                # partner is the other person
+                find_person_by_id(root, r.person1 if r.person2.resource[1:] == person.id else r.person2)
+                # of a couple relationship
+                for r in root.relationships if r.type == enums.RelationshipType.couple
+                # that contains the person
+                and person.id in [r.person1.resource[1:], r.person2.resource[1:]])
+        except StopIteration:
+            print(f'{person.id} is not connected!')
+            continue
         try:
             partner_generation: models.Fact = next(
                 f for f in partner.facts if f.type == enums.FactType.generationNumber)
