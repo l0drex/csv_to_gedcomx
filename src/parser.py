@@ -160,6 +160,17 @@ def check_last_name(name: str, person_id: str):
         last_names.add(name)
 
 
+def replace_if_unknown(root, partner1):
+    if partner1 == '0':
+        # add new person if undefined
+        partner1 = str(len(root.persons) + 1)
+        person = models.Person(id=partner1,
+                               facts=[models.Fact(type=enums.FactType.maritalStatus, value='single')],
+                               gender=models.Gender(type=enums.GenderType.unknown))
+        root.persons.append(person)
+    return root, partner1
+
+
 def parse_family(root: models.GedcomXObject, row) -> models.Relationship:
     """
     Parses single a row representing a family and returns a GedcomX relationship
@@ -168,20 +179,8 @@ def parse_family(root: models.GedcomXObject, row) -> models.Relationship:
     :return: a GedcomX relationship
     """
 
-    partner1 = row['partner1']
-    if partner1 == '0':
-        # add new person if undefined
-        partner1 = str(len(root.persons))
-        person = models.Person(id=partner1,
-                               facts=[models.Fact(type=enums.FactType.maritalStatus, value='single')],
-                               gender=models.Gender(type=enums.GenderType.unknown))
-        root.persons.append(person)
-    partner2 = row['partner2']
-    if partner2 == '0':
-        partner2 = str(len(root.persons))
-        person = models.Person(id=partner2,
-                               facts=[models.Fact(type=enums.FactType.maritalStatus, value='single')])
-        root.persons.append(person)
+    root, partner1 = replace_if_unknown(root, row['partner1'])
+    root, partner2 = replace_if_unknown(root, row['partner2'])
 
     relationship = models.Relationship(
         id='r-' + row['id'],
