@@ -1,4 +1,5 @@
 import datetime
+import logging
 
 from gedcomx import models, enums
 
@@ -74,7 +75,7 @@ def add_generations(root: models.GedcomXObject):
                 # that contains the person
                 and person.id in [r.person1.resource[1:], r.person2.resource[1:]])
         except StopIteration:
-            print(f'{person.id} is not connected!')
+            logging.warning(f'{person.id} is not connected!')
             continue
         try:
             partner_generation: models.Fact = next(
@@ -83,7 +84,7 @@ def add_generations(root: models.GedcomXObject):
             if new_min > min_generation:
                 min_generation = new_min
         except StopIteration:
-            print(f'{person.id} is not connected!')
+            logging.warning(f'{person.id} is not connected!')
 
     generation_start = min_generation  # 0 + min_generation
     try:
@@ -192,25 +193,25 @@ def filter_relatives(root: models.GedcomXObject, person_id: str) -> models.Gedco
     person = find_person_by_id(root, person_id)
     relatives: [models.Person] = [person]
 
-    print('Collecting siblings')
+    logging.debug('Collecting siblings')
     for s in get_siblings(root, person):
         relatives.append(s)
 
     stack = relatives.copy()
-    print('Collection descendants')
+    logging.debug('Collection descendants')
     while len(stack) > 0:
         for c in get_children(root, stack.pop()):
             relatives.append(c)
             stack.append(c)
 
-    print('Collecting ancestors')
+    logging.debug('Collecting ancestors')
     stack = [person]
     while len(stack) > 0:
         for p in get_parents(root, stack.pop()):
             relatives.append(p)
             stack.append(p)
 
-    print('Collecting partners')
+    logging.debug('Collecting partners')
     for relative in relatives.copy():
         for p in get_partners(root, relative):
             relatives.append(p)
@@ -222,7 +223,7 @@ def filter_relatives(root: models.GedcomXObject, person_id: str) -> models.Gedco
            and r.person2.resource[1:] in [p.id for p in relatives]
     ]
 
-    assert len(root.persons) > 0
-    assert len(root.relationships) > 0
+    assert len(root.persons) > 0, 'No persons remain'
+    assert len(root.relationships) > 0, 'No Relationships remain'
 
     return root

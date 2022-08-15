@@ -1,4 +1,5 @@
 import csv
+import logging
 
 from fuzzywuzzy import fuzz
 from gedcomx import models, enums
@@ -156,7 +157,7 @@ def check_last_name(name: str, person_id: str):
         for present_name in last_names:
             hamming_distance = fuzz.ratio(list(name), list(present_name))
             if hamming_distance > 92:
-                print(f"Possible spelling mistake found: {name} of {person_id} should be {present_name}")
+                logging.warning(f'Possible spelling mistake found: {name} of {person_id} could be {present_name}')
         last_names.add(name)
 
 
@@ -216,7 +217,7 @@ def parse_family(root: models.GedcomXObject, row) -> models.Relationship:
                 age = get_age(person, marital_status.date)
                 marital_status.qualifiers = [models.Qualifier(name='http://gedcomx.org/Age', value=age)]
             except ValueError as e:
-                print(f"Could not determine age at marriage of {person.id}:", e)
+                logging.warning(f'Could not determine age at marriage of {person.id}: {e}')
 
         # add parent-child
         if row['id'] in children:

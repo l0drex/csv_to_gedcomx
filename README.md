@@ -18,8 +18,6 @@ When you specify an id, only the following people will be included in the output
 - partners and siblings
 - descendants of siblings
 
-> ⚠️ I don't recommend piping the output directly to a file, since any errors and warnings will be included and the file will be corrupted.
-
 # Structure of the CSV files
 
 ## Person table
