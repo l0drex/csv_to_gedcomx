@@ -170,7 +170,7 @@ def get_partners(root: models.GedcomXObject, person: models.Person) -> [models.P
         find_person_by_id(root, r.person1 if person.id == r.person2.resource[1:] else r.person2)
         for r in root.relationships
         if r.type == enums.RelationshipType.couple
-        and (r.person1.resource[1:] == person.id or r.person2.resource[1:] == person.id)
+           and (r.person1.resource[1:] == person.id or r.person2.resource[1:] == person.id)
     )
 
 
@@ -227,3 +227,11 @@ def filter_relatives(root: models.GedcomXObject, person_id: str) -> models.Gedco
     assert len(root.relationships) > 0, 'No Relationships remain'
 
     return root
+
+
+def check_date(date: str, source: str):
+    if date[6:] == '01-01':
+        logging.info(
+            f"Detected 01-01 date at {source}. "
+            "If only the year is known, just leave out day ond month!"
+        )

@@ -5,7 +5,7 @@ from fuzzywuzzy import fuzz
 from gedcomx import models, enums
 from gedcomx.models import SourceReference, SourceDescription, SourceCitation
 
-from utils import get_age, find_person_by_id
+from utils import get_age, find_person_by_id, check_date
 
 # maps relationship ids to person ids
 children: dict[str, [str]] = {}
@@ -74,6 +74,7 @@ def parse_person(root, row) -> models.Person:
         person.sources = [ref]
 
     if row['birth_date'] or row['birth_place']:
+        check_date(row['birth_date'], 'p-' + row['id'])
         birth = models.Fact(
             type=enums.FactType.birth,
             date=models.Date(formal=row['birth_date']) if row['birth_date'] else None,
@@ -87,6 +88,7 @@ def parse_person(root, row) -> models.Person:
         too_old = False
 
     if row['death_date'] or row['death_place'] or row['death_cause'] or too_old:
+        check_date(row['death_date'], 'p-' + row['id'])
         death = models.Fact(
             type=enums.FactType.death,
             date=models.Date(formal=row['death_date']) if row['death_date'] else None,
@@ -217,6 +219,7 @@ def parse_family(root: models.GedcomXObject, row) -> models.Relationship:
     if row['date'] or row['place']:
         marriage = models.Fact(type=enums.CoupleRelationshipFactType.marriage)
         if row['date']:
+            check_date(row['date'], 'r-' + row['id'])
             marriage.date = models.Date(formal=row['date'])
         if row['place']:
             marriage.place = models.PlaceReference(original=row['place'])
