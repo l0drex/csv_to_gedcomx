@@ -3,6 +3,7 @@ import logging
 
 from fuzzywuzzy import fuzz
 from gedcomx import models, enums
+from gedcomx.models import SourceReference, SourceDescription, SourceCitation
 
 from utils import get_age, find_person_by_id
 
@@ -29,7 +30,7 @@ def load_data(person_file: str, family_file: str) -> models.GedcomXObject:
             if row['id'] == '':
                 break
 
-            root.persons.append(parse_person(row))
+            root.persons.append(parse_person(root, row))
 
     with open(family_file) as file:
         reader = csv.DictReader(file)
@@ -42,22 +43,35 @@ def load_data(person_file: str, family_file: str) -> models.GedcomXObject:
     return root
 
 
-def parse_person(row) -> models.Person:
+def parse_person(root, row) -> models.Person:
     """
     Utility function that parses a single row of person data
+    :param root: document root
     :param row: the row returned by the dict reader
     :return: a GedcomX person
     """
+    sources: {str: SourceReference} = {}
 
     person = models.Person(
-        id=row['id'],
-        gender=models.Gender(type=f'http://gedcomx.org/{row["gender"]}'),
+        id=f'p-{row["id"]}',
+        gender=models.Gender(type=f'http://gedcomx.org/{row["gender"] if row["gender"] else "Unknown"}'),
         names=get_names(row),
         facts=[models.Fact(type=enums.FactType.maritalStatus, value='single')],
         private=False
     )
     if row['notes']:
         person.notes = [models.Note(text=note) for note in row['notes'].split(';')]
+    if row['source']:
+        src = row['source']
+        if src not in sources:
+            root.sourceDescriptions = []
+            root.sourceDescriptions.append(
+                SourceDescription(citations=[SourceCitation(value=src)], id=f's-{row["id"]}')
+            )
+            ref = sources[src] = SourceReference(description=f'#s-{row["id"]}')
+        else:
+            ref = sources[src]
+        person.sources = [ref]
 
     if row['birth_date'] or row['birth_place']:
         birth = models.Fact(
@@ -161,15 +175,18 @@ def check_last_name(name: str, person_id: str):
         last_names.add(name)
 
 
-def replace_if_unknown(root, partner1):
-    if partner1 == '0':
+def replace_if_unknown(root: models.GedcomXObject, p: str) -> [models.GedcomXObject, str]:
+    if p == '0':
         # add new person if undefined
-        partner1 = str(len(root.persons) + 1)
-        person = models.Person(id=partner1,
-                               facts=[models.Fact(type=enums.FactType.maritalStatus, value='single')],
-                               gender=models.Gender(type=enums.GenderType.unknown))
+        p = f'p-{len(root.persons) + 1}'
+        person = models.Person(
+            id=p,
+            facts=[models.Fact(type=enums.FactType.maritalStatus, value='single')],
+            gender=models.Gender(type=enums.GenderType.unknown))
         root.persons.append(person)
-    return root, partner1
+    else:
+        p = f'p-{p}'
+    return root, p
 
 
 def parse_family(root: models.GedcomXObject, row) -> models.Relationship:
@@ -223,9 +240,9 @@ def parse_family(root: models.GedcomXObject, row) -> models.Relationship:
         if row['id'] in children:
             for child_id in children[row['id']]:
                 root.relationships.append(models.Relationship(
-                    id=f'r-{person_id}-{child_id}',
+                    id=f'r-{len(root.relationships)}',
                     type=enums.RelationshipType.parentChild,
                     person1=person_id,
-                    person2=models.ResourceReference(resource='#' + child_id)))
+                    person2=models.ResourceReference(resource='#p-' + child_id)))
 
     return relationship
