@@ -1,5 +1,6 @@
 import csv
 import logging
+from urllib.parse import urlparse
 
 from fuzzywuzzy import fuzz
 from gedcomx import models, enums
@@ -258,7 +259,8 @@ def parse_family(root: models.GedcomXObject, row) -> models.Relationship:
 
 def add_media(row) -> models.SourceDescription:
     # add a media reference
-    citation = SourceCitation(value=row['media'])
+    host = urlparse(row['media']).hostname
+    citation = SourceCitation(value=host)
     source_description = SourceDescription(citations=[citation])
     source_description.id = f'i-{row["id"]}'
     source_description.about = row['media']
