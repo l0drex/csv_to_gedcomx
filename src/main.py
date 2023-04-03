@@ -22,6 +22,8 @@ def main(args) -> Optional[dict]:
     logging.debug('Adding generations')
     add_generations(root)
 
+    print(f'Found {len(root.persons)} persons, {len(root.relationships)} relationships and {len(root.sourceDescriptions)} source descriptions')
+
     if args.output:
         with open(args.output, "w") as file:
             json.dump(root.dict(), file)

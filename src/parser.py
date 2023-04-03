@@ -21,7 +21,7 @@ def load_data(person_file: str, family_file: str) -> models.GedcomXObject:
     :return: the root object of the GedcomX file
     """
 
-    root = models.GedcomXObject(persons=[], relationships=[])
+    root = models.GedcomXObject(persons=[], relationships=[], sourceDescriptions=[])
     with open(person_file) as file:
         reader = csv.DictReader(file)
         for row in reader:
@@ -31,6 +31,8 @@ def load_data(person_file: str, family_file: str) -> models.GedcomXObject:
                 break
 
             root.persons.append(parse_person(root, row))
+            if row['media'] != '':
+                root.sourceDescriptions.append(add_media(row))
 
     with open(family_file) as file:
         reader = csv.DictReader(file)
@@ -64,7 +66,6 @@ def parse_person(root, row) -> models.Person:
     if row['source']:
         src = row['source']
         if src not in sources:
-            root.sourceDescriptions = []
             root.sourceDescriptions.append(
                 SourceDescription(citations=[SourceCitation(value=src)], id=f's-{row["id"]}')
             )
@@ -122,6 +123,10 @@ def parse_person(root, row) -> models.Person:
         children[row['child_of']].append(row['id'])
     else:
         children[row['child_of']] = [row['id']]
+
+    if row['media']:
+        source_reference = SourceReference(description=f'#i-{row["id"]}')
+        person.media = [source_reference]
 
     return person
 
@@ -249,3 +254,13 @@ def parse_family(root: models.GedcomXObject, row) -> models.Relationship:
                     person2=models.ResourceReference(resource='#p-' + child_id)))
 
     return relationship
+
+
+def add_media(row) -> models.SourceDescription:
+    # add a media reference
+    citation = SourceCitation(value=row['media'])
+    source_description = SourceDescription(citations=[citation])
+    source_description.id = f'i-{row["id"]}'
+    source_description.about = row['media']
+
+    return source_description
