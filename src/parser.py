@@ -1,6 +1,10 @@
 import csv
 import logging
+from urllib.error import URLError
+
+from _socket import gaierror
 from urllib.parse import urlparse
+from urllib.request import urlopen
 
 from fuzzywuzzy import fuzz
 from gedcomx import models, enums
@@ -259,10 +263,18 @@ def parse_family(root: models.GedcomXObject, row) -> models.Relationship:
 
 def add_media(row) -> models.SourceDescription:
     # add a media reference
-    host = urlparse(row['media']).hostname
+    url = row['media']
+    host = urlparse(url).hostname
     citation = SourceCitation(value=host)
     source_description = SourceDescription(citations=[citation])
     source_description.id = f'i-{row["id"]}'
-    source_description.about = row['media']
+    source_description.about = url
+
+    try:
+        with urlopen(url) as response:
+            info = response.info()
+            source_description.mediaType = info.get_content_type()
+    except URLError:
+        logging.error(f'Resource unavailable: {url}')
 
     return source_description
