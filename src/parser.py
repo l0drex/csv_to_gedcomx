@@ -277,7 +277,8 @@ def add_media(row) -> models.SourceDescription:
         with urlopen(url) as response:
             info = response.info()
             source_description.mediaType = info.get_content_type()
-    except URLError:
+    except URLError as e:
         logging.error(f'Resource unavailable: {url}')
+        logging.error(e)
 
     return source_description
