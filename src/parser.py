@@ -133,6 +133,9 @@ def parse_person(root, row) -> models.Person:
         source_reference = SourceReference(description=f'#i-{row["id"]}')
         person.media = [source_reference]
 
+    if row['confidence']:
+        person.confidence = 'http://gedcomx.org/' + row['confidence']
+
     return person
 
 
