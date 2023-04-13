@@ -63,7 +63,7 @@ def parse_person(root, row) -> models.Person:
         id=f'p-{row["id"]}',
         gender=models.Gender(type=f'http://gedcomx.org/{row["gender"] if row["gender"] else "Unknown"}'),
         names=get_names(row),
-        facts=[models.Fact(type=enums.FactType.maritalStatus, value='single')],
+        facts=[models.Fact(type=enums.FactType.maritalStatus, value='Single')],
         private=False
     )
     if row['notes']:
@@ -196,7 +196,7 @@ def replace_if_unknown(root: models.GedcomXObject, p: str) -> [models.GedcomXObj
         p = f'p-{len(root.persons) + 1}'
         person = models.Person(
             id=p,
-            facts=[models.Fact(type=enums.FactType.maritalStatus, value='single')],
+            facts=[models.Fact(type=enums.FactType.maritalStatus, value='Single')],
             gender=models.Gender(type=enums.GenderType.unknown))
         root.persons.append(person)
     else:
@@ -242,7 +242,7 @@ def parse_family(root: models.GedcomXObject, row) -> models.Relationship:
         person = find_person_by_id(root, person_id)
 
         marital_status = [f for f in person.facts if f.type == enums.FactType.maritalStatus][0]
-        marital_status.value = 'married'
+        marital_status.value = 'Married'
         if row['date']:
             # add date and age qualifier
             marital_status.date = models.Date(formal=row['date'])
