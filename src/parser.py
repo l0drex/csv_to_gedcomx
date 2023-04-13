@@ -10,7 +10,7 @@ from fuzzywuzzy import fuzz
 from gedcomx import models, enums
 from gedcomx.models import SourceReference, SourceDescription, SourceCitation
 
-from utils import get_age, find_person_by_id, check_date
+from utils import get_age, find_person_by_id, check_date, check_living
 
 # maps relationship ids to person ids
 children: dict[str, [str]] = {}
@@ -247,8 +247,13 @@ def parse_family(root: models.GedcomXObject, row) -> models.Relationship:
             # add date and age qualifier
             marital_status.date = models.Date(formal=row['date'])
             try:
-                age = get_age(person, marital_status.date)
-                marital_status.qualifiers = [models.Qualifier(name='http://gedcomx.org/Age', value=age)]
+                if not check_living(person, marital_status.date):
+                    logging.error(f'Person {person_id} was not alive at time of their marriage!')
+                else:
+                    age = get_age(person, marital_status.date)
+                    if age > 50:
+                        logging.warning(f'Person {person_id} was over 50 years old at time of marriage!')
+                    marital_status.qualifiers = [models.Qualifier(name='http://gedcomx.org/Age', value=age)]
             except ValueError as e:
                 logging.warning(f'Could not determine age at marriage of {person.id}: {e}')
 

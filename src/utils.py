@@ -28,6 +28,24 @@ def get_age(person: models.Person, date: models.Date = None) -> int:
     return age
 
 
+def check_living(person: models.Person, date: models.Date) -> bool:
+    date = date_to_python_date(date)
+
+    birth = [f for f in person.facts if f.type == enums.FactType.birth]
+    if len(birth) > 0:
+        birth = birth[0].date
+        if birth and date < date_to_python_date(birth):
+            return False
+
+    death = [f for f in person.facts if f.type == enums.FactType.death]
+    if len(death) > 0:
+        death = death[0].date
+        if death and date_to_python_date(death) < date:
+            return False
+
+    return True
+
+
 def date_to_python_date(date: models.Date) -> datetime.date:
     """
     Converts a date to a python date object
