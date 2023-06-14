@@ -2,7 +2,6 @@ import csv
 import logging
 from urllib.error import URLError
 
-from _socket import gaierror
 from urllib.parse import urlparse
 from urllib.request import urlopen
 
@@ -261,7 +260,7 @@ def parse_family(root: models.GedcomXObject, row) -> models.Relationship:
         if row['id'] in children:
             for child_id in children[row['id']]:
                 root.relationships.append(models.Relationship(
-                    id=f'r-{len(root.relationships)}',
+                    id=f'r-{person_id.resource[1:]}-p-{child_id}',
                     type=enums.RelationshipType.parentChild,
                     person1=person_id,
                     person2=models.ResourceReference(resource='#p-' + child_id)))
