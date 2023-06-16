@@ -15,6 +15,7 @@ from utils import get_age, find_person_by_id, check_date, check_living
 children: dict[str, [str]] = {}
 # used to identify possible spelling mistakes
 last_names: set[str] = set()
+sources: {str: SourceReference} = {}
 
 
 def load_data(person_file: str, family_file: str) -> models.GedcomXObject:
@@ -56,7 +57,6 @@ def parse_person(root, row) -> models.Person:
     :param row: the row returned by the dict reader
     :return: a GedcomX person
     """
-    sources: {str: SourceReference} = {}
 
     person = models.Person(
         id=f'p-{row["id"]}',
@@ -73,9 +73,9 @@ def parse_person(root, row) -> models.Person:
             root.sourceDescriptions.append(
                 SourceDescription(citations=[SourceCitation(value=src)], id=f's-{row["id"]}')
             )
-            ref = sources[src] = SourceReference(description=f'#s-{row["id"]}')
-        else:
-            ref = sources[src]
+            sources[src] = SourceReference(description=f'#s-{row["id"]}')
+
+        ref = sources[src]
         person.sources = [ref]
 
     if row['birth_date'] or row['birth_place']:
@@ -276,6 +276,7 @@ def add_media(row) -> models.SourceDescription:
     source_description = SourceDescription(citations=[citation])
     source_description.id = f'i-{row["id"]}'
     source_description.about = url
+    source_description.resourceType = enums.ResourceType.digitalArtifact
 
     try:
         with urlopen(url) as response:
