@@ -1,6 +1,5 @@
 import csv
 import logging
-import ssl
 from urllib.error import URLError
 
 from urllib.parse import urlparse
@@ -280,7 +279,7 @@ def add_media(row) -> models.SourceDescription:
     source_description.resourceType = enums.ResourceType.digitalArtifact
 
     try:
-        with urlopen(url, context=ssl.SSLContext()) as response:  # disable ssl certificate verification. do not push!
+        with urlopen(url) as response:
             info = response.info()
             source_description.mediaType = info.get_content_type()
     except URLError as e:
