@@ -145,39 +145,62 @@ def get_names(row) -> list[models.Name]:
     :return: list of GedcomX names
     """
 
-    # first, build a default name containing everything
-    formal_name_forms = models.NameForm(fullText=row['full_name'], parts=[])
-    if row['title']:
-        title = models.NamePart(value=row['title'])
-        title.qualifiers = [models.Qualifier(name='http://gedcomx.org/Title')]
-        formal_name_forms.parts.append(title)
-    surname = models.NamePart(type=enums.NamePartType.surname, value=row['surname'])
-    surname.qualifiers = [models.Qualifier(name=enums.IdentifierType.primary)]
-    formal_name_forms.parts.append(surname)
-    if row['middle_name']:
-        middle_name = models.NamePart(value=row['middle_name'])
-        middle_name.qualifiers = [models.Qualifier(name='http://gedcomx.org/Middle')]
-        formal_name_forms.parts.append(middle_name)
-    last_name = models.NamePart(value=row['married'] if row['married'] else row['born'])
-    last_name.qualifiers = [models.Qualifier(name='http://gedcomx.org/Family')]
-    formal_name_forms.parts.append(last_name)
-    yield models.Name(nameForms=[formal_name_forms])
+    # collect name parts
+    title = models.NamePart(value=row['title'], type=enums.NamePartType.prefix)
+    title.qualifiers = [models.Qualifier(name='http://gedcomx.org/Title')]
 
-    # then give some additional names
-    if row['married']:
-        check_last_name(row['married'], row['id'])
-        yield models.Name(type=enums.NameType.marriedName, nameForms=[models.NameForm(fullText=row['married'])])
+    given_name = models.NamePart(value=row['given_name'], type=enums.NamePartType.given)
+    given_name.qualifiers = [models.Qualifier(name='http://gedcomx.org/Primary')]
 
-    if row['born']:
-        check_last_name(row['born'], row['id'])
-        yield models.Name(type=enums.NameType.birthName, nameForms=[models.NameForm(fullText=row['born'])])
+    middle_name = models.NamePart(value=row['middle_name'], type=enums.NamePartType.given)
+    middle_name.qualifiers = [models.Qualifier(name='http://gedcomx.org/Middle')]
+
+    nickname = models.NamePart(value=row['nickname'], type=enums.NamePartType.given)
+    nickname.qualifiers = [models.Qualifier(name='http://gedcomx.org/Secondary')]
+
+    aka = models.NamePart(value=row['aka'], type=enums.NamePartType.given)
+
+    check_last_name(row['surname_born'], row['id'])
+    surname_born = models.NamePart(value=row['surname_born'], type=enums.NamePartType.surname)
+    surname_born.qualifiers = [models.Qualifier(name='http://gedcomx.org/Family')]
+
+    check_last_name(row['surname_married'], row['id'])
+    surname_married = models.NamePart(value=row['surname_married'], type=enums.NamePartType.surname)
+    surname_married.qualifiers = [models.Qualifier(name='http://gedcomx.org/Family')]
+
+    if row['surname_married']:
+        name_parts = [p for p in [title, given_name, middle_name, surname_married] if p.value != '']
+        yield models.Name(type=enums.NameType.marriedName, nameForms=[
+            models.NameForm(
+                fullText=row['full_name'],
+                parts=name_parts)
+        ])
+
+    if row['surname_born']:
+        name_parts = [p for p in [title, given_name, middle_name, surname_born] if p.value != '']
+        name_form = models.NameForm(parts=name_parts)
+        if not row['surname_married']:
+            name_form.fullText = row['full_name']
+
+        yield models.Name(type=enums.NameType.birthName, nameForms=[
+            name_form
+        ])
 
     if row['nickname']:
-        yield models.Name(type=enums.NameType.nickname, nameForms=[models.NameForm(fullText=row['nickname'])])
+        name_parts = [p for p in [nickname] if p.value != '']
+        yield models.Name(type=enums.NameType.nickname, nameForms=[
+            models.NameForm(
+                fullText=row['full_name'],
+                parts=name_parts)
+        ])
 
     if row['aka']:
-        yield models.Name(type=enums.NameType.alsoKnownAs, nameForms=[models.NameForm(fullText=row['aka'])])
-
+        name_parts = [p for p in [aka] if p.value != '']
+        yield models.Name(type=enums.NameType.alsoKnownAs, nameForms=[
+            models.NameForm(
+                fullText=row['full_name'],
+                parts=name_parts)
+        ])
 
 def check_last_name(name: str, person_id: str):
     if name not in last_names:
